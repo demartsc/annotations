@@ -1,0 +1,258 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>d3-annotation on Tableau</title>
+<!--<script src="//d3js.org/d3.v3.min.js" charset="utf-8"></script>-->
+<script src="https://d3js.org/d3.v4.js"></script>
+<script src="https://rawgit.com/susielu/d3-annotation/master/d3-annotation.min.js"></script>
+<script src="https://public.tableau.com/javascripts/api/tableau-2.0.0.min.js" type="text/javascript"></script>
+<script src="jquery-1.10.2.js"></script> 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.1/moment.min.js"></script> 
+<style>
+    :root {
+      --accent-color: #E8336D;
+    }
+
+    body {
+        margin: auto;
+        background-color: #000000
+    }
+
+    #container {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        opacity: .99; 
+    }
+    #tableauViz {
+        overflow: hidden;
+        position: absolute;
+        width: 100%;
+        z-index: 1;
+      }
+
+    #cover {
+        overflow: hidden;
+        position: absolute;
+        background-color: rgba(128,128,128,.2);
+        width: 100%;
+        z-index: -1;
+    }
+
+    .annotation path {
+      stroke: var(--accent-color);
+      fill: none;
+    }
+
+    .annotation path.connector-arrow{
+      fill: var(--accent-color);
+    }
+
+    .annotation text {
+      fill: var(--accent-color);
+    }
+
+    .annotation-note-title {
+      font-weight: bold;
+    }
+
+    .annotation.xythreshold {
+      cursor: move;
+    }
+
+    .annotation.xythreshold .annotation-subject{
+      stroke-width: 3px;
+    }
+
+    .annotation.badge path.subject-pointer, .annotation.badge path.subject {
+      fill: var(--accent-color);
+      stroke-width: 3px;
+      stroke-linecap: round;
+    } 
+
+    .annotation.badge path.subject-ring {
+      fill: white;
+      stroke-width: 3px;
+    }
+
+    .annotation.badge .badge-text {
+      fill: white;
+      font-size: .7em;
+    }
+        
+    rect.annotation-note-bg {
+      fill: rgba(255, 255, 255, 0);
+    }
+
+    text.hover {
+      font-size: .7em;
+    }
+
+</style>
+</head>
+<body>
+<div id=container>
+<!--<button onclick="animatereset()">Animate Me Please!</button> -->
+<button onclick="d3fadeout()">D3 Fade Me Out Please!</button> 
+<button onclick="d3fadein()">D3 Fade Me In Please!</button> 
+<button onclick="d3annot()">D3-Annotate Me Please!</button> 
+<div id=tableauViz></div>
+<div id=cover>
+    <svg id=notes></svg> 
+</div>
+</div>
+</body> 
+<script>
+    var note_counter = 0;
+    var viz1, one, workbooka, activeSheet, Worksheet, worksheet;
+    $(function() {
+        var onePh = document.getElementById("tableauViz");
+        var oneUrl = "https://public.tableau.com/views/PolarClock_1/POLAR?:showVizHome=no&:showTabs=n&:display_spinner=no&:jsdebug=n&:embed=y&:display_overlay=no&:display_static_image=no&:animate_transition=yes";
+
+        var oneOptions = {
+            width: "100%",
+            height: "100vh",
+                    hideTabs: false,
+                    onFirstInteractive: function() {
+                    clock();
+                    setDivSize();
+                    //workbooka = viz1.getWorkbook();
+            }
+        };
+    viz1 = new tableauSoftware.Viz(onePh, oneUrl, oneOptions);
+    //viz1.addEventListener(tableau.TableauEventName.MARKS_SELECTION, onMarksSelect);
+});
+
+/*
+function animate() {
+if(i<=162) {
+window.setTimeout("animate()","1000");
+animate1(i);
+i++;
+}
+}
+
+function animatereset(){
+workbooka.changeParameterValueAsync("Animate Games", 1);    
+animate();
+}
+
+function animate1(a) {
+workbooka.changeParameterValueAsync("Animate Games", [a]);
+}
+*/
+
+function clock() {
+    viz1.refreshDataAsync();
+    setTimeout(clock, 1000);
+}
+
+function d3fadein(){
+    d3.select("#tableauViz").transition().duration(2000).style("opacity",1); 
+}
+
+function d3fadeout(){
+    //this doesnt work yet, something with security and http vs https
+//    var iframeElementx = document.getElementsByTagName('iframe');
+//    iframeElementy = (iframeElementx[0].contentDocument || iframeElementx[0].contentWindow),
+//    iframeElementz = iframeElementy.document.body;
+
+    d3.select("#tableauViz").transition().duration(2000).style("opacity",0);
+    //console.log(iframeElementz); // causing error right now
+}
+
+function setDivSize() {
+    $("#cover").height($("#tableauViz").height());
+    $("#cover").width($("#tableauViz").width());
+    $("#cover").css("z-index",-9999);
+    $("#notes").height($("#tableauViz").height());
+    $("#notes").width($("#tableauViz").width());
+}
+
+function d3annot() {
+    $("#cover").css("z-index",1);
+    $("#tableauViz").css("z-index",-1);
+}
+
+$('iframe').load(function(){
+  $(this).contents().find("html").on('click', function(event) { alert('test'); });
+});
+
+$('body').click(function(e) {
+    //console.log("we made it");
+
+    window.x = e.pageX;
+    window.y = e.pageY;
+    console.log(x,y);
+    note_counter++;
+
+    ///couple of notes here
+    //1. we will want to count how many annotations and possibly comments have been added. 
+    //2. maybe have some type of indicator on the top or to the right that note these
+    //3. issue is div/svg are on top of the viz limit interactivity with the viz
+
+    const type = d3.annotationBadge;
+
+    const annotations = [{
+        note: { 
+            label: "Click",
+            title: "Dynamic Annotation" 
+        },
+        y: y,
+        x: x,
+        subject: { text: note_counter.toString(), y:"top" },
+        type: d3.annotationBadge
+    }];
+
+    console.log(annotations);
+
+    const makeAnnotations = d3.annotation()
+      .editMode(false)
+      .type(type)
+      //accessors & accessorsInverse not needed
+      //if using x, y in annotations JSON
+      .accessors({
+        x: x,
+        y: y
+      })
+    .on('subjectover', function(annotation) {
+
+      this.append('text')
+        .attr('class', 'hover')
+        .text(moment(Date()).format('M/D/YY hh:mm:ss a').toString() + " Chris: ")//annotation.note.title)
+        .attr('text-anchor', 'middle')
+        .attr('y', (annotation.subject.y && annotation.subject.y == "bottom") ? 70 : -60)
+        .attr('x', -15)
+
+      //cannot reference this if you are using es6 function syntax
+      this.append('text')
+        .attr('class', 'hover')
+        .text('this is the note ' + note_counter.toString() + ' text')//annotation.note.label)
+        .attr('text-anchor', 'middle')
+        .attr('y', (annotation.subject.y && annotation.subject.y == "bottom") ? 50 : -40)
+        .attr('x', -15)
+
+    })
+    .on('subjectout', function(annotation) {
+      this.selectAll('text.hover')
+      .remove()
+    })
+
+//      .accessorsInverse({
+//         date: d => timeFormat(x.invert(d.x)),
+//         close: d => y.invert(d.y)
+//      })
+      .annotations(annotations);
+
+    d3.select("svg#notes")
+      .append("g")
+      .attr("id", note_counter.toString())
+      .attr("class", "annotation-group")
+      .call(makeAnnotations);
+    //here is where we can call annotation stuff...
+
+});
+
+</script>
+</html>
